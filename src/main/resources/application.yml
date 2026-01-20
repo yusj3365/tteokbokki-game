@@ -1,50 +1,31 @@
 spring:
   profiles:
-    default: local
+    active: local # 로컬 프로필 강제 활성화
   application:
     name: tteokbokki
-  servlet:
-    multipart:
-      max-file-size: 20MB
-      max-request-size: 20MB
-  mvc:
-    view:
-      prefix: /WEB-INF/views/
-      suffix: .jsp
+
   datasource:
     url: jdbc:h2:mem:tteokbokki
     driver-class-name: org.h2.Driver
     username: sa
     password:
-    # 2. H2 콘솔 설정 (브라우저에서 DB 확인용)
-    h2:
-      console:
-        enabled: true
-        path: /h2-console
-    # 3. JPA/Hibernate 설정
-    jpa:
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
       hibernate:
-        ddl-auto: update
-      show-sql: true
-      properties:
-        hibernate:
-          format_sql: true # SQL을 예쁘게 로그에 찍어줍니다.
-  # 4. 서버 포트 설정 (기본은 8080)
-  server:
-    port: 8080
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+
 logging:
   level:
-    org.springframework.core.LocalVariableTableParameterNameDiscoverer: error
-    org.springframework: DEBUG
-
-
-swagger:
-  local:
-    url: http://localhost:8080
-    description: '로컬'
-  dev:
-    url: https://api-dev.tteokbokki.co.kr
-    description: '개발'
-  prod:
-    url: https://api.tteokbokki.co.kr
-    description: '운영'
+    root: info
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
