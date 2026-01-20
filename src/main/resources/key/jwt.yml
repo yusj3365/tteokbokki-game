@@ -1,0 +1,5 @@
+jwt:
+  jwt-iss: rainbow-tv
+  secret-key: EGx2Avq6Bebs1URNLBqGEx9430NDcxbhK_ChozqduTg
+  access-token-expiration-ms: 86400000        # 1?
+  refresh-token-expiration-ms: 2592000000     # 30?
