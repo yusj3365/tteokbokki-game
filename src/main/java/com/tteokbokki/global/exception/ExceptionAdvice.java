@@ -1,7 +1,8 @@
 package com.tteokbokki.global.exception;
 
-import com.cmb.rainbowtv.global.dto.response.ErrorResponse;
-import com.cmb.rainbowtv.global.dto.response.result.ExceptionResult;
+import com.tteokbokki.global.dto.response.ErrorResponse;
+import com.tteokbokki.global.dto.response.result.ExceptionResult;
+import com.tteokbokki.global.dto.response.result.ExceptionResult.ServerErrorData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -15,16 +16,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static com.cmb.rainbowtv.global.exception.ErrorCode.INVALID_INPUT;
-import static com.cmb.rainbowtv.global.exception.ErrorCode.INVALID_PARAMETER;
-import static com.cmb.rainbowtv.global.exception.ErrorCode.NOT_FOUND_PATH;
-import static com.cmb.rainbowtv.global.exception.ErrorCode.PARAMETER_GRAMMAR_ERROR;
-import static com.cmb.rainbowtv.global.exception.ErrorCode.PARAMETER_VALIDATION_ERROR;
-import static com.cmb.rainbowtv.global.exception.ErrorCode.SERVER_UNTRACKED_ERROR;
 
 
 @Slf4j
@@ -32,12 +27,18 @@ import static com.cmb.rainbowtv.global.exception.ErrorCode.SERVER_UNTRACKED_ERRO
 @RestControllerAdvice
 public class ExceptionAdvice {
 
+    @ExceptionHandler(NoResourceFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse<String> handleNoResourceFoundException(NoResourceFoundException e) {
+        log.warn("[NO RESOURCE FOUND] message: [{}]", e.getMessage());
+        return ErrorResponse.of(ErrorCode.NOT_FOUND_PATH, e.getMessage());
+    }
     /**
      * 등록되지 않은 예외
      */
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    protected ErrorResponse<ExceptionResult.ServerErrorData> handleUntrackedException(Exception e) {
+    protected ErrorResponse<ServerErrorData> handleUntrackedException(Exception e) {
         log.error("[UNTRACKED ERROR] class: [{}], message: [{}]",
             e.getClass().getSimpleName(),
             e.getMessage());
@@ -46,7 +47,7 @@ public class ExceptionAdvice {
             .errorClass(e.getClass().toString())
             .errorMessage(e.getMessage())
             .build();
-        return ErrorResponse.of(SERVER_UNTRACKED_ERROR, serverErrorData);
+        return ErrorResponse.of(ErrorCode.SERVER_UNTRACKED_ERROR, serverErrorData);
     }
 
     /**
@@ -75,7 +76,7 @@ public class ExceptionAdvice {
             list.add(parameterData);
         }
 
-        return ErrorResponse.of(PARAMETER_VALIDATION_ERROR, list);
+        return ErrorResponse.of(ErrorCode.PARAMETER_VALIDATION_ERROR, list);
     }
 
     /**
@@ -89,7 +90,7 @@ public class ExceptionAdvice {
             e.getClass().getSimpleName(),
             e.getMessage());
 
-        return ErrorResponse.of(PARAMETER_GRAMMAR_ERROR);
+        return ErrorResponse.of(ErrorCode.PARAMETER_GRAMMAR_ERROR);
     }
 
     /**
@@ -103,7 +104,7 @@ public class ExceptionAdvice {
             e.getClass().getSimpleName(),
             e.getMessage());
 
-        return ErrorResponse.of(INVALID_PARAMETER, e.getMessage());
+        return ErrorResponse.of(ErrorCode.INVALID_PARAMETER, e.getMessage());
     }
 
     /**
@@ -136,8 +137,8 @@ public class ExceptionAdvice {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ResponseEntity<ErrorResponse<String>> handleIllegalArgumentException(
         IllegalArgumentException e) {
-        ErrorResponse<String> body = ErrorResponse.of(INVALID_INPUT, e.getMessage());
-        HttpStatus httpStatus = HttpStatus.valueOf(INVALID_INPUT.getHttpCode());
+        ErrorResponse<String> body = ErrorResponse.of(ErrorCode.INVALID_INPUT, e.getMessage());
+        HttpStatus httpStatus = HttpStatus.valueOf(ErrorCode.INVALID_INPUT.getHttpCode());
         return new ResponseEntity<>(body, httpStatus);
     }
 
@@ -148,8 +149,8 @@ public class ExceptionAdvice {
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ResponseEntity<ErrorResponse<String>> handleInvalidPathExceptions(
         NoHandlerFoundException e) {
-        ErrorResponse<String> body = ErrorResponse.of(NOT_FOUND_PATH, e.getMessage());
-        HttpStatus httpStatus = HttpStatus.valueOf(NOT_FOUND_PATH.getHttpCode());
+        ErrorResponse<String> body = ErrorResponse.of(ErrorCode.NOT_FOUND_PATH, e.getMessage());
+        HttpStatus httpStatus = HttpStatus.valueOf(ErrorCode.NOT_FOUND_PATH.getHttpCode());
         return new ResponseEntity<>(body, httpStatus);
     }
 

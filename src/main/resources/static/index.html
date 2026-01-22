@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>떡볶이 게임 (박스 모드)</title>
+    <style>
+        :root {
+            --cell-size: 40px;
+            --board-rows: 10;
+            --board-cols: 17;
+            --primary-color: #ff4d4d;
+            --bg-color: #fff5f5;
+        }
+
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            width: calc(var(--cell-size) * var(--board-cols) + 10px);
+            margin-bottom: 15px;
+            padding: 10px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            font-size: 1.1rem;
+            font-weight: bold;
+            z-index: 10;
+        }
+
+        .timer { color: #d32f2f; }
+        .score { color: #1976d2; }
+
+        .game-container {
+            position: relative;
+            background: #fff;
+            padding: 5px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            touch-action: none;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(var(--board-cols), var(--cell-size));
+            grid-template-rows: repeat(var(--board-rows), var(--cell-size));
+            gap: 1px;
+            background-color: #eee;
+            border: 2px solid #333;
+            position: relative; /* selection box 기준점 */
+        }
+
+        .cell {
+            position: relative;
+            width: var(--cell-size);
+            height: var(--cell-size);
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: crosshair; /* 박스 선택 커서 */
+            overflow: hidden;
+        }
+
+        /* 빈 셀 스타일 */
+        .cell[data-value="0"] {
+            background-color: #f0f0f0;
+            cursor: default;
+        }
+
+        /* 떡볶이 조각 스타일 */
+        .tteok-piece {
+            position: absolute;
+            width: 25%;
+            height: 60%;
+            background-color: white;
+            border: 1px solid #f5c8c8;
+            border-radius: 8px;
+            box-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+            pointer-events: none; /* 마우스 이벤트가 cell로 전달되도록 */
+        }
+
+        .cell-number {
+            position: relative;
+            z-index: 2;
+            font-size: 18px;
+            font-weight: 900;
+            color: #d32f2f;
+            text-shadow: 0 0 3px white, 0 0 3px white;
+            pointer-events: none;
+        }
+
+        /* 드래그 박스 (파란색 반투명) */
+        #selectionBox {
+            position: absolute;
+            border: 2px solid #2196f3;
+            background-color: rgba(33, 150, 243, 0.3);
+            display: none;
+            pointer-events: none; /* 마우스 이벤트 통과 */
+            z-index: 100;
+        }
+
+        /* 선택된 셀 하이라이트 */
+        .cell.selected {
+            background-color: #bbdefb !important;
+        }
+
+        /* 결과 모달 등 기존 스타일 유지 */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
+        .modal {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            width: 90%;
+            max-width: 350px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .bowl-container {
+            position: relative;
+            width: 200px;
+            height: 100px;
+            margin: 20px auto;
+            background: radial-gradient(circle at 50% 30%, #d84315, #bf360c);
+            border: 4px solid #5d4037;
+            border-top: none;
+            border-bottom-left-radius: 100px;
+            border-bottom-right-radius: 100px;
+            overflow: hidden;
+        }
+        .tteok-visual {
+            position: absolute;
+            width: 20px;
+            height: 8px;
+            background-color: white;
+            border-radius: 4px;
+            box-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+        }
+        .btn-restart {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="timer">⏰ <span id="timeDisplay">120</span>초</div>
+    <div class="score">😋 <span id="scoreDisplay">0</span>점</div>
+</div>
+
+<div class="game-container">
+    <div class="grid" id="grid">
+        <!-- 드래그 박스 요소 -->
+        <div id="selectionBox"></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="resultModal">
+    <div class="modal">
+        <h2>잘 먹었습니다!</h2>
+        <p>총 획득 점수: <strong id="finalScore" style="color: #d32f2f; font-size: 1.5rem;">0</strong>점</p>
+        <div class="bowl-container" id="bowl"></div>
+        <button class="btn-restart" onclick="initGame()">다시 하기</button>
+    </div>
+</div>
+
+<script>
+    // --- 게임 설정 ---
+    const ROWS = 10;
+    const COLS = 17;
+    const GAME_TIME = 120;
+
+    // --- 상태 변수 ---
+    let board = [];
+    let score = 0;
+    let timeLeft = GAME_TIME;
+    let timerInterval = null;
+
+    // 박스 드래그 관련 변수
+    let isDragging = false;
+    let startPos = { r: -1, c: -1 }; // 그리드 좌표
+    let currentPos = { r: -1, c: -1 };
+
+    // --- DOM 요소 ---
+    const gridEl = document.getElementById('grid');
+    const selectionBox = document.getElementById('selectionBox');
+    const timeDisplay = document.getElementById('timeDisplay');
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const resultModal = document.getElementById('resultModal');
+    const finalScoreEl = document.getElementById('finalScore');
+    const bowlEl = document.getElementById('bowl');
+
+    // --- 초기화 ---
+    function initGame() {
+        score = 0;
+        timeLeft = GAME_TIME;
+        isDragging = false;
+        resultModal.style.display = 'none';
+        scoreDisplay.innerText = score;
+        timeDisplay.innerText = timeLeft;
+
+        // 보드 생성 (1~9 랜덤)
+        board = [];
+        for (let r = 0; r < ROWS; r++) {
+            let row = [];
+            for (let c = 0; c < COLS; c++) {
+                row.push(Math.floor(Math.random() * 9) + 1);
+            }
+            board.push(row);
+        }
+
+        renderBoard();
+        startTimer();
+    }
+
+    function startTimer() {
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            timeDisplay.innerText = timeLeft;
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }, 1000);
+    }
+
+    function endGame() {
+        clearInterval(timerInterval);
+        finalScoreEl.innerText = score;
+        renderBowl(score);
+        resultModal.style.display = 'flex';
+    }
+
+    // --- 렌더링 ---
+    function renderBoard() {
+        // grid 내부의 cell들만 지우고 selectionBox는 유지해야 함
+        // 하지만 편의상 innerHTML을 밀고 selectionBox를 다시 붙이는 방식 사용
+        gridEl.innerHTML = '';
+        gridEl.appendChild(selectionBox); // 박스 요소 다시 추가
+
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.dataset.r = r;
+                cell.dataset.c = c;
+
+                const val = board[r][c];
+                cell.dataset.value = val;
+
+                if (val > 0) {
+                    const numberEl = document.createElement('span');
+                    numberEl.className = 'cell-number';
+                    numberEl.innerText = val;
+                    cell.appendChild(numberEl);
+
+                    for (let i = 0; i < val; i++) {
+                        const piece = document.createElement('div');
+                        piece.className = 'tteok-piece';
+                        piece.style.left = `${Math.random() * 50 + 10}%`;
+                        piece.style.top = `${Math.random() * 20 + 10}%`;
+                        piece.style.transform = `rotate(${Math.random() * 90 - 45}deg)`;
+                        cell.appendChild(piece);
+                    }
+                }
+
+                gridEl.appendChild(cell);
+            }
+        }
+    }
+
+    // --- 박스 드래그 이벤트 핸들러 ---
+
+    // 마우스/터치 시작
+    function handleStart(e) {
+        if (timeLeft <= 0) return;
+
+        // 이벤트 타겟이 cell인지 확인
+        const target = e.target.closest('.cell');
+        if (!target) return;
+
+        e.preventDefault(); // 텍스트 선택 방지
+
+        const r = parseInt(target.dataset.r);
+        const c = parseInt(target.dataset.c);
+
+        // 빈칸에서 시작해도 드래그는 가능하게 할지, 아니면 막을지?
+        // 보통 사과게임은 빈칸 포함해서 드래그 가능하므로 허용.
+
+        isDragging = true;
+        startPos = { r, c };
+        currentPos = { r, c };
+
+        updateSelectionVisual();
+    }
+
+    // 마우스/터치 이동
+    function handleMove(e) {
+        if (!isDragging) return;
+
+        let clientX, clientY;
+        if (e.type === 'touchmove') {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+
+        // 현재 좌표에 있는 요소 찾기
+        const target = document.elementFromPoint(clientX, clientY);
+        const cell = target ? target.closest('.cell') : null;
+
+        if (cell) {
+            const r = parseInt(cell.dataset.r);
+            const c = parseInt(cell.dataset.c);
+
+            // 좌표가 변했을 때만 업데이트
+            if (r !== currentPos.r || c !== currentPos.c) {
+                currentPos = { r, c };
+                updateSelectionVisual();
+            }
+        }
+    }
+
+    // 마우스/터치 종료
+    function handleEnd() {
+        if (!isDragging) return;
+        isDragging = false;
+        selectionBox.style.display = 'none';
+
+        // 선택된 영역의 로직 검사
+        checkSelection();
+
+        // 시각적 선택 해제
+        document.querySelectorAll('.cell.selected').forEach(el => el.classList.remove('selected'));
+    }
+
+    // 이벤트 리스너 등록
+    gridEl.addEventListener('mousedown', handleStart);
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleEnd);
+
+    gridEl.addEventListener('touchstart', handleStart, {passive: false});
+    window.addEventListener('touchmove', handleMove, {passive: false});
+    window.addEventListener('touchend', handleEnd);
+
+
+    // --- 박스 시각화 및 데이터 계산 ---
+    function getSelectionBounds() {
+        const minR = Math.min(startPos.r, currentPos.r);
+        const maxR = Math.max(startPos.r, currentPos.r);
+        const minC = Math.min(startPos.c, currentPos.c);
+        const maxC = Math.max(startPos.c, currentPos.c);
+        return { minR, maxR, minC, maxC };
+    }
+
+    function updateSelectionVisual() {
+        const bounds = getSelectionBounds();
+
+        // 1. 박스 그리기 (픽셀 단위 계산)
+        // 시작 셀과 끝 셀의 DOM 요소를 찾아 위치 계산
+        const startCell = getCellElement(bounds.minR, bounds.minC);
+        const endCell = getCellElement(bounds.maxR, bounds.maxC);
+
+        if (!startCell || !endCell) return;
+
+        // gridEl 기준 상대 좌표 계산
+        const gridRect = gridEl.getBoundingClientRect();
+        const startRect = startCell.getBoundingClientRect();
+        const endRect = endCell.getBoundingClientRect();
+
+        const left = startRect.left - gridRect.left;
+        const top = startRect.top - gridRect.top;
+        const width = (endRect.right - gridRect.left) - left;
+        const height = (endRect.bottom - gridRect.top) - top;
+
+        selectionBox.style.left = `${left}px`;
+        selectionBox.style.top = `${top}px`;
+        selectionBox.style.width = `${width}px`;
+        selectionBox.style.height = `${height}px`;
+        selectionBox.style.display = 'block';
+
+        // 2. 포함된 셀 하이라이트
+        document.querySelectorAll('.cell.selected').forEach(el => el.classList.remove('selected'));
+
+        for (let r = bounds.minR; r <= bounds.maxR; r++) {
+            for (let c = bounds.minC; c <= bounds.maxC; c++) {
+                const cell = getCellElement(r, c);
+                if (cell) cell.classList.add('selected');
+            }
+        }
+    }
+
+    function getCellElement(r, c) {
+        // gridEl의 자식 중 cell 클래스를 가진 것들 중 인덱스로 찾기
+        // gridEl에는 selectionBox가 포함되어 있으므로 querySelectorAll 사용
+        // r * COLS + c 번째 cell
+        const cells = gridEl.querySelectorAll('.cell');
+        const index = r * COLS + c;
+        return cells[index];
+    }
+
+    // --- 게임 로직: 연속된 숫자 검사 ---
+    function checkSelection() {
+        const bounds = getSelectionBounds();
+        let selectedValues = [];
+        let selectedCoords = [];
+
+        // 1. 선택된 영역의 값 수집 (0 제외)
+        for (let r = bounds.minR; r <= bounds.maxR; r++) {
+            for (let c = bounds.minC; c <= bounds.maxC; c++) {
+                const val = board[r][c];
+                if (val > 0) {
+                    selectedValues.push(val);
+                    selectedCoords.push({r, c});
+                }
+            }
+        }
+
+        // 2. 유효성 검사
+        // 조건: 2개 이상이어야 함 (보통 1개는 연속이라 안함)
+        if (selectedValues.length < 2) return;
+
+        // 정렬
+        selectedValues.sort((a, b) => a - b);
+
+        // 연속성 검사
+        let isConsecutive = true;
+        for (let i = 0; i < selectedValues.length - 1; i++) {
+            // 현재 값 + 1 이 다음 값과 같아야 함
+            if (selectedValues[i] + 1 !== selectedValues[i+1]) {
+                isConsecutive = false;
+                break;
+            }
+        }
+
+        // 3. 성공 시 처리
+        if (isConsecutive) {
+            popCells(selectedCoords);
+        }
+    }
+
+    function popCells(coords) {
+        score += coords.length;
+        scoreDisplay.innerText = score;
+
+        // 보드에서 제거 (0으로 변경)
+        coords.forEach(pos => {
+            board[pos.r][pos.c] = 0;
+        });
+
+        // 중력 적용
+        applyGravity();
+
+        // 화면 갱신
+        renderBoard();
+    }
+
+    function applyGravity() {
+        for (let c = 0; c < COLS; c++) {
+            let newCol = [];
+            // 0이 아닌 숫자들만 수집
+            for (let r = 0; r < ROWS; r++) {
+                if (board[r][c] !== 0) {
+                    newCol.push(board[r][c]);
+                }
+            }
+
+            // [수정됨] 리필하지 않음!
+            // 부족한 개수만큼 위쪽을 0으로 채움
+            const emptyCount = ROWS - newCol.length;
+            for (let i = 0; i < emptyCount; i++) {
+                newCol.unshift(0); // 랜덤 숫자 대신 0 추가
+            }
+
+            // 보드에 반영
+            for (let r = 0; r < ROWS; r++) {
+                board[r][c] = newCol[r];
+            }
+        }
+    }
+
+    function renderBowl(finalScore) {
+        bowlEl.innerHTML = '';
+        const visualCount = Math.min(finalScore, 100);
+        for (let i = 0; i < visualCount; i++) {
+            const item = document.createElement('div');
+            item.className = 'tteok-visual';
+            const left = Math.random() * 160 + 10;
+            const top = Math.random() * 60 + 20;
+            const rotate = Math.random() * 360;
+            item.style.left = left + 'px';
+            item.style.top = top + 'px';
+            item.style.transform = `rotate(${rotate}deg)`;
+            bowlEl.appendChild(item);
+        }
+    }
+
+    // 시작
+    initGame();
+
+</script>
+</body>
+</html>

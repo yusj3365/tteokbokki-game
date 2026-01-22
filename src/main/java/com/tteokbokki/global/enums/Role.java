@@ -1,6 +1,5 @@
 package com.tteokbokki.global.enums;
 
-import io.hamagroups.securitymodule.dto.AuthInfo;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -29,18 +28,6 @@ public enum Role {
         return FULL_NAME_MAP.get(fullRoleName);
     }
 
-    public static boolean isAdmin(AuthInfo authInfo) {
-        Role role = Role.fromRoleName(authInfo.role());
-        return Role.SUPER_ADMIN.equals(role) || Role.NORMAL_ADMIN.equals(role);
-    }
-
-    public static boolean isSuperAdmin(AuthInfo authInfo) {
-        return Role.SUPER_ADMIN.equals(Role.fromRoleName(authInfo.role()));
-    }
-
-    public static boolean isNormalAdmin(AuthInfo authInfo) {
-        return Role.NORMAL_ADMIN.equals(Role.fromRoleName(authInfo.role()));
-    }
 
     public String getRoleName() {
         return this.name();

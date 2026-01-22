@@ -1,11 +1,11 @@
 package com.tteokbokki.global.util;
 
-import com.cmb.rainbowtv.global.dto.request.CursorSearchRequest;
-import com.cmb.rainbowtv.global.dto.request.SearchRequest;
-import com.cmb.rainbowtv.global.dto.response.result.CombinedResult;
-import com.cmb.rainbowtv.global.dto.response.result.CursorResult;
-import com.cmb.rainbowtv.global.dto.response.result.ListResult;
-import com.cmb.rainbowtv.global.dto.response.result.PageInfo;
+import com.tteokbokki.global.dto.request.CursorSearchRequest;
+import com.tteokbokki.global.dto.request.SearchRequest;
+import com.tteokbokki.global.dto.response.result.CombinedResult;
+import com.tteokbokki.global.dto.response.result.CursorResult;
+import com.tteokbokki.global.dto.response.result.ListResult;
+import com.tteokbokki.global.dto.response.result.PageInfo;
 
 import java.util.List;
 import java.util.Objects;

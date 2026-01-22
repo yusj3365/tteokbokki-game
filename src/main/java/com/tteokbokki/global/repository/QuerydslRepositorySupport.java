@@ -1,11 +1,5 @@
 package com.tteokbokki.global.repository;
 
-import com.cmb.rainbowtv.global.dto.request.CursorSearchRequest;
-import com.cmb.rainbowtv.global.dto.request.SearchRequest;
-import com.cmb.rainbowtv.global.dto.request.enums.DirProp;
-import com.cmb.rainbowtv.global.dto.request.enums.OrderProp;
-import com.cmb.rainbowtv.global.exception.CustomException;
-import com.cmb.rainbowtv.global.exception.ErrorCode;
 import com.querydsl.core.types.EntityPath;
 import com.querydsl.core.types.Expression;
 import com.querydsl.core.types.OrderSpecifier;
@@ -15,6 +9,12 @@ import com.querydsl.core.types.dsl.PathBuilder;
 import com.querydsl.jpa.JPQLTemplates;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import com.tteokbokki.global.dto.request.CursorSearchRequest;
+import com.tteokbokki.global.dto.request.SearchRequest;
+import com.tteokbokki.global.dto.request.enums.DirProp;
+import com.tteokbokki.global.dto.request.enums.OrderProp;
+import com.tteokbokki.global.exception.CustomException;
+import com.tteokbokki.global.exception.ErrorCode;
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityManager;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -84,7 +84,7 @@ public abstract class QuerydslRepositorySupport {
     }
 
     protected OrderSpecifier<?>[] createOrderFilter(SearchRequest searchRequest,
-        BiFunction<OrderProp, DirProp, OrderSpecifier<?>> createOrderSpecifier) {
+                                                    BiFunction<OrderProp, DirProp, OrderSpecifier<?>> createOrderSpecifier) {
         List<OrderSpecifier<?>> orders = new ArrayList<>();
         List<OrderProp> props = searchRequest.getProps();
         List<DirProp> dirs = searchRequest.getDirs();
